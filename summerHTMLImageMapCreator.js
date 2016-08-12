@@ -629,6 +629,26 @@ var summerHtmlImageMapCreator = (function() {
                     });
                 }
                 return html_code;
+            },
+			getCSVCode : function(arg) {
+                var csv_code = '';
+                if (arg) {
+                    if (!state.areas.length) {
+                        return '0 objects';
+                    }
+                    utils.foreachReverse(state.areas, function(x) {
+						if(x._type == "polygon") {
+							csv_code += x._el.polylineName+';' + utils.encode(x.toCSVMapElementString()) + '<br/>';							
+						}
+                    });
+                } else {
+                    utils.foreachReverse(state.areas, function(x) {
+                        if(x._type == "polygon") {
+							csv_code += x._el.polylineName+';' + utils.encode(x.toCSVMapElementString()) + '<br/>';							
+						}
+                    });
+                }
+                return csv_code;
             }
         };
     })();
@@ -1837,9 +1857,17 @@ var summerHtmlImageMapCreator = (function() {
      */
     Polygon.prototype.close = function() {
         var polyline = this._el;
+				
+		var polylineName = prompt("Please give a name to your object", "");
+    
         this._el = document.createElementNS(Area.SVG_NS, 'polygon');
-        this._groupEl.replaceChild(this._el, polyline);
+		if (polylineName != null) {
+			this._el.polylineName = polylineName;
+			polyline.polylineName = polylineName;
+		}
 
+		this._groupEl.replaceChild(this._el, polyline);
+		
         this._coords.isOpened = false;
         this.redraw().deselect();
     };
@@ -2077,6 +2105,14 @@ var summerHtmlImageMapCreator = (function() {
             + (this._attributes.title ? ' title="' + this._attributes.title + '"' : '')
             + ' />';
     };
+	
+	Polygon.prototype.toCSVMapElementString = function() {
+        var str = this._coords.points.map(function(item) {
+            return item.x + ', ' + item.y;
+        }).join(', ');
+        
+        return "'"+str+"'";
+    };
 
     /**
      * Returns coords for area attributes form
@@ -2277,6 +2313,10 @@ var summerHtmlImageMapCreator = (function() {
         return {
             print: function() {
                 content.innerHTML = app.getHTMLCode(true);
+                utils.show(block);
+            },
+			printCsv: function() {
+                content.innerHTML = app.getCSVCode(true);
                 utils.show(block);
             },
             hide: function() {
@@ -2667,6 +2707,7 @@ var summerHtmlImageMapCreator = (function() {
             clear = utils.id('clear'),
             from_html = utils.id('from_html'),
             to_html = utils.id('to_html'),
+            to_csv = utils.id('to_csv'),
             preview = utils.id('preview'),
             new_image = utils.id('new_image'),
             show_help = utils.id('show_help');
@@ -2738,6 +2779,14 @@ var summerHtmlImageMapCreator = (function() {
             
             e.preventDefault();
         }
+		
+		function onToCsvButtonClick(e) {
+            // Generate csv code only
+            info.unload();
+            code.printCsv();
+            
+            e.preventDefault();
+        }
         
         function onPreviewButtonClick(e) {
             if (app.getMode() === 'preview') {
@@ -2803,6 +2852,7 @@ var summerHtmlImageMapCreator = (function() {
         clear.addEventListener('click', onClearButtonClick, false);
         from_html.addEventListener('click', onFromHtmlButtonClick, false);
         to_html.addEventListener('click', onToHtmlButtonClick, false);
+        to_csv.addEventListener('click', onToCsvButtonClick, false);
         preview.addEventListener('click', onPreviewButtonClick, false);
         edit.addEventListener('click', onEditButtonClick, false);
         new_image.addEventListener('click', onNewImageButtonClick, false);
